@@ -11,7 +11,7 @@
 - Swagger para documentación
 
 ## ⚠️ Seguridad (importante)
-- **No** guardes contraseñas en texto plano. Aquí se cifran con AES-256-GCM.
+- **No** guarde contraseñas en texto plano. Aquí se cifran con AES-256-GCM.
 - La master password se envía en el body en endpoints de creación/lectura/actualización. **Usa HTTPS** si despliegas.
 - En un sistema real, implementa sesiones/tokens y rate-limiting.
 
@@ -98,6 +98,6 @@ curl -X DELETE http://localhost:3000/vault/:id
 ```
 
 ## 📚 Notas
-- Puedes abrir `npx prisma studio` para ver las tablas y tomar capturas.
+- Puede abrir `npx prisma studio` para ver las tablas y tomar capturas.
 - Para producción, usa Postgres y configura variables de entorno.
 - Considera agregar rate limit, CSRF y autenticación real si haces UI web.

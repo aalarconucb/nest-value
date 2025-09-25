@@ -1,0 +1,369 @@
+{
+  "info": {
+    "name": "Nest Vault API",
+    "_postman_id": "b1f9e4f1-6f3a-4f53-b6f2-0f9fd7c1a001",
+    "description": "Colección Postman para el Gestor de Contraseñas Seguro (NestJS + Prisma). Incluye flujo completo: setup → login → crear → listar → obtener → actualizar → eliminar.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Setup (inicializar sistema)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"master\": \"{{master}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/setup",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "setup"
+              ]
+            },
+            "description": "Inicializa el sistema creando el hash Argon2id de la master password y almacenando el salt para el KDF."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Guarda userId si viene en la respuesta",
+                  "pm.test('Status 201/200', function() {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200,201,409]);",
+                  "});",
+                  "try {",
+                  "  const data = pm.response.json();",
+                  "  if (data && data.userId) {",
+                  "    pm.environment.set('userId', data.userId);",
+                  "  }",
+                  "} catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login (verificar master)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"master\": \"{{master}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Verifica que la master password sea válida."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('ok true', function() {",
+                  "  const data = pm.response.json();",
+                  "  pm.expect(data.ok).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Vault",
+      "item": [
+        {
+          "name": "Crear entrada",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{name}}\",\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\",\n  \"master\": \"{{master}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/vault",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vault"
+              ]
+            },
+            "description": "Crea y guarda una contraseña cifrada con AES-256-GCM."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201/200', function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200,201]);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.environment.set('entryId', data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar entradas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vault",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vault"
+              ]
+            },
+            "description": "Lista metadatos de todas las entradas (no devuelve contraseñas en texto claro)."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "try {",
+                  "  const arr = pm.response.json();",
+                  "  if (Array.isArray(arr) && arr.length && arr[0].id) {",
+                  "    pm.environment.set('entryId', arr[0].id);",
+                  "  }",
+                  "} catch (e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Obtener entrada (descifrada)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vault/{{entryId}}?master={{master}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vault",
+                "{{entryId}}"
+              ],
+              "query": [
+                {
+                  "key": "master",
+                  "value": "{{master}}"
+                }
+              ]
+            },
+            "description": "Devuelve name, username y password en texto claro tras derivar la clave con la master password."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.test('Tiene password', function() {",
+                  "  pm.expect(data).to.have.property('password');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Actualizar entrada",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{nameUpdated}}\",\n  \"password\": \"{{passwordUpdated}}\",\n  \"master\": \"{{master}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/vault/{{entryId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vault",
+                "{{entryId}}"
+              ]
+            },
+            "description": "Actualiza metadatos y/o contraseña cifrada."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Eliminar entrada",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vault/{{entryId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vault",
+                "{{entryId}}"
+              ]
+            },
+            "description": "Elimina definitivamente la entrada."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.environment.unset('entryId');"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "master",
+      "value": "UnaClaveLarga!2024"
+    },
+    {
+      "key": "name",
+      "value": "Gmail"
+    },
+    {
+      "key": "username",
+      "value": "alvaro"
+    },
+    {
+      "key": "password",
+      "value": "Secreta!123"
+    },
+    {
+      "key": "nameUpdated",
+      "value": "Gmail Personal"
+    },
+    {
+      "key": "passwordUpdated",
+      "value": "Nueva*Clave123"
+    }
+  ]
+}
